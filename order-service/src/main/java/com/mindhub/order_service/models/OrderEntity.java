@@ -2,6 +2,8 @@ package com.mindhub.order_service.models;
 
 import jakarta.persistence.*;
 import com.mindhub.order_service.models.item.OrderItemEntity;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
@@ -12,11 +14,15 @@ public class OrderEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotNull(message = "User ID is required")
     private Long userId;
 
+    @NotNull(message = "Order status cannot be null")
+    @Enumerated(EnumType.STRING)
     private OrderStatus status = OrderStatus.PENDING;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @NotEmpty(message = "Order must contain at least one product")
     private List<OrderItemEntity> products = List.of();
 
     public OrderEntity(){
