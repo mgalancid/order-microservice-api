@@ -27,6 +27,11 @@ public class OrderEntity {
         this.status = status;
     }
 
+    public void addProduct(OrderItemEntity orderItem) {
+        orderItem.setOrder(this);
+        products.add(orderItem);
+    }
+
     public Long getUserId() {
         return userId;
     }
