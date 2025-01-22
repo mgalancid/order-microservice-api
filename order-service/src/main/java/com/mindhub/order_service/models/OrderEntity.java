@@ -27,6 +27,10 @@ public class OrderEntity {
         this.status = status;
     }
 
+    public Long getId() {
+        return id;
+    }
+
     public Long getUserId() {
         return userId;
     }
