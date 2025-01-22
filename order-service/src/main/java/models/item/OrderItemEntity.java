@@ -11,19 +11,17 @@ public class OrderItemEntity {
 
     @ManyToOne
     private OrderEntity order;
-
     private Long productId;
-
     private Integer quantity;
 
     public OrderItemEntity(){
 
     }
 
-    public OrderItemEntity(OrderItemEntity orderItem) {
-        this.order = orderItem.order;
-        this.productId = orderItem.productId;
-        this.quantity = orderItem.quantity;
+    public OrderItemEntity(OrderEntity order, Long productId, Integer quantity) {
+        this.order = order;
+        this.productId = productId;
+        this.quantity = quantity;
     }
 
     public Long getId() {
