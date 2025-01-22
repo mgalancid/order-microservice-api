@@ -6,6 +6,7 @@ import com.mindhub.order_service.models.item.OrderItemEntity;
 import java.util.List;
 
 @Entity
+@Table(name = "orders")
 public class OrderEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

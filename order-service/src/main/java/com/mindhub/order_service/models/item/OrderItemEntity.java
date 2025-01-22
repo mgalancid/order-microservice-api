@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import com.mindhub.order_service.models.OrderEntity;
 
 @Entity
+@Table(name = "orders_item")
 public class OrderItemEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
