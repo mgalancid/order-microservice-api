@@ -1,7 +1,7 @@
-package models;
+package com.mindhub.order_service.models;
 
 import jakarta.persistence.*;
-import models.item.OrderItemEntity;
+import com.mindhub.order_service.models.item.OrderItemEntity;
 
 import java.util.List;
 

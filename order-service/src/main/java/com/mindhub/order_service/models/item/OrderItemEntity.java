@@ -1,7 +1,7 @@
-package models.item;
+package com.mindhub.order_service.models.item;
 
 import jakarta.persistence.*;
-import models.OrderEntity;
+import com.mindhub.order_service.models.OrderEntity;
 
 @Entity
 public class OrderItemEntity {
