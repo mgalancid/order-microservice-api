@@ -39,18 +39,13 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderEntityDTO createOrder(NewOrderEntityDTO newOrderEntityDTO) {
         OrderEntity order = new OrderEntity();
-        order.setUserId(newOrderEntityDTO.getUserId());
         order.setStatus(newOrderEntityDTO.getStatus());
 
-        try{
-            String userServiceUrl = "http://localhost:8081/api/users/" + newOrderEntityDTO.getUserId();
-            JsonNode userDetails = getJsonFromUrl(userServiceUrl);
 
-            if (!userDetails.has("id") || !userDetails.get("id")
-                    .asText()
-                    .equals(newOrderEntityDTO.getUserId().toString())) {
-                throw new IllegalArgumentException("Invalid userId: " + newOrderEntityDTO.getUserId());
-            }
+        try {
+            String userServiceUrl = "http://localhost:8081/api/users?email=" + newOrderEntityDTO.getUserEmail();
+            JsonNode userDetails = getJsonFromUrl(userServiceUrl);
+            order.setUserId(userDetails.path("id").asLong());
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to fetch user details", e);
         }
