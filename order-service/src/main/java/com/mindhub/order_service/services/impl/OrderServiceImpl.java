@@ -11,8 +11,8 @@ import com.mindhub.order_service.models.OrderStatus;
 import com.mindhub.order_service.repositories.OrderItemRepository;
 import com.mindhub.order_service.repositories.OrderRepository;
 import com.mindhub.order_service.services.OrderService;
-import com.mindhub.order_service.utils.RestTemplateConfig;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -36,15 +36,23 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private ObjectMapper objectMapper;
 
+    private final String userServiceUrl;
+    private final String productServiceUrl;
+
+    public OrderServiceImpl(@Value("${user.service.url") String userServiceUrl,
+                            @Value("${product.service.url")String productServiceUrl) {
+        this.userServiceUrl = userServiceUrl;
+        this.productServiceUrl = productServiceUrl;
+    }
+
     @Override
     public OrderEntityDTO createOrder(NewOrderEntityDTO newOrderEntityDTO) {
         OrderEntity order = new OrderEntity();
         order.setStatus(newOrderEntityDTO.getStatus());
 
-
         try {
-            String userServiceUrl = "http://localhost:8081/api/users?email=" + newOrderEntityDTO.getUserEmail();
-            JsonNode userDetails = getJsonFromUrl(userServiceUrl);
+            String userServiceEmailUrl = userServiceUrl + newOrderEntityDTO.getUserEmail();
+            JsonNode userDetails = getJsonFromUrl(userServiceEmailUrl);
             order.setUserId(userDetails.path("id").asLong());
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to fetch user details", e);
