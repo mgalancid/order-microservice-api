@@ -1,5 +1,8 @@
 package com.mindhub.order_service.services.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mindhub.order_service.dtos.NewOrderEntityDTO;
 import com.mindhub.order_service.dtos.OrderEntityDTO;
 import com.mindhub.order_service.exceptions.OrderNotFoundException;
@@ -8,20 +11,30 @@ import com.mindhub.order_service.models.OrderStatus;
 import com.mindhub.order_service.repositories.OrderItemRepository;
 import com.mindhub.order_service.repositories.OrderRepository;
 import com.mindhub.order_service.services.OrderService;
+import com.mindhub.order_service.utils.RestTemplateConfig;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class OrderServiceImpl implements OrderService {
 
     @Autowired
-    private  OrderRepository orderRepository;
+    private OrderRepository orderRepository;
+
+    @Autowired
+    private RestTemplate restTemplate;
 
     @Autowired
     private OrderItemRepository orderItemRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Override
     public OrderEntityDTO createOrder(NewOrderEntityDTO newOrderEntityDTO) {
@@ -29,8 +42,20 @@ public class OrderServiceImpl implements OrderService {
         order.setUserId(newOrderEntityDTO.getUserId());
         order.setStatus(newOrderEntityDTO.getStatus());
 
-        OrderEntity savedOrder = orderRepository.save(order);
+        try{
+            String userServiceUrl = "http://localhost:8081/api/users/" + newOrderEntityDTO.getUserId();
+            JsonNode userDetails = getJsonFromUrl(userServiceUrl);
 
+            if (!userDetails.has("id") || !userDetails.get("id")
+                    .asText()
+                    .equals(newOrderEntityDTO.getUserId().toString())) {
+                throw new IllegalArgumentException("Invalid userId: " + newOrderEntityDTO.getUserId());
+            }
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to fetch user details", e);
+        }
+
+        OrderEntity savedOrder = orderRepository.save(order);
         return new OrderEntityDTO(savedOrder);
     }
 
@@ -50,6 +75,26 @@ public class OrderServiceImpl implements OrderService {
         OrderEntity updatedOrder = orderRepository.save(order);
 
         return new OrderEntityDTO(updatedOrder);
+    }
+
+    @Override
+    public OrderEntityDTO confirmOrder(Long orderId, Long userId) {
+        Optional<OrderEntity> optionalOrder = orderRepository.findById(orderId);
+        if (optionalOrder.isEmpty()) {
+            throw new OrderNotFoundException("Order with ID " + orderId + " not found.");
+        }
+        OrderEntity order = optionalOrder.get();
+
+        order.setStatus(OrderStatus.COMPLETED);
+        orderRepository.save(order);
+
+        return new OrderEntityDTO(order);
+    }
+
+    @Override
+    public JsonNode getJsonFromUrl(String url) throws JsonProcessingException {
+        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+        return objectMapper.readTree(response.getBody());
     }
 }
 
