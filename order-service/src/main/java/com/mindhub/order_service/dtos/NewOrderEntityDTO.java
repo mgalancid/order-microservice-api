@@ -7,25 +7,25 @@ import com.mindhub.order_service.models.item.OrderItemEntity;
 import java.util.List;
 
 public class NewOrderEntityDTO {
-    private final Long userId;
+    private final String userEmail;
     private final OrderStatus status;
-    private final List<OrderItemEntity> products;
+    private final List<NewOrderItemEntityDTO> products;
 
-    public NewOrderEntityDTO(OrderEntity order) {
-        this.userId = order.getUserId();
-        this.status = order.getStatus();
-        this.products = order.getProducts();
+    public NewOrderEntityDTO(String userEmail, OrderStatus status, List<NewOrderItemEntityDTO> products) {
+        this.userEmail = userEmail;
+        this.status = status;
+        this.products = products;
     }
 
-    public Long getUserId() {
-        return userId;
+    public String getUserEmail() {
+        return userEmail;
     }
 
     public OrderStatus getStatus() {
         return status;
     }
 
-    public List<OrderItemEntity> getProducts() {
+    public List<NewOrderItemEntityDTO> getProducts() {
         return products;
     }
 }
