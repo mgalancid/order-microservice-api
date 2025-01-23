@@ -41,11 +41,11 @@ public class OrderServiceImpl implements OrderService {
         OrderEntity order = new OrderEntity();
         order.setStatus(newOrderEntityDTO.getStatus());
 
+
         try {
             String userServiceUrl = "http://localhost:8081/api/users?email=" + newOrderEntityDTO.getUserEmail();
             JsonNode userDetails = getJsonFromUrl(userServiceUrl);
             order.setUserId(userDetails.path("id").asLong());
-
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to fetch user details", e);
         }
