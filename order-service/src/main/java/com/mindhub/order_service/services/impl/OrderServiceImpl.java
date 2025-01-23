@@ -2,6 +2,7 @@ package com.mindhub.order_service.services.impl;
 
 import com.mindhub.order_service.dtos.NewOrderEntityDTO;
 import com.mindhub.order_service.dtos.OrderEntityDTO;
+import com.mindhub.order_service.exceptions.OrderNotFoundException;
 import com.mindhub.order_service.models.OrderEntity;
 import com.mindhub.order_service.models.OrderStatus;
 import com.mindhub.order_service.repositories.OrderItemRepository;
@@ -43,11 +44,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderEntityDTO updateOrderStatus(Long orderId, OrderStatus status) {
         OrderEntity order = orderRepository.findById(orderId)
-                .orElse(null);
-
-        if(order == null){
-            return null;
-        }
+                .orElseThrow(OrderNotFoundException::new);
 
         order.setStatus(status);
         OrderEntity updatedOrder = orderRepository.save(order);
