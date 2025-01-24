@@ -7,6 +7,7 @@ import com.mindhub.order_service.dtos.OrderEntityDTO;
 import com.mindhub.order_service.exceptions.OrderNotFoundException;
 import com.mindhub.order_service.models.OrderStatus;
 import com.mindhub.order_service.services.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,11 +18,8 @@ import java.util.List;
 @RequestMapping("/orders")
 public class OrderController {
 
-    private final OrderService orderService;
-
-    public OrderController(OrderService orderService) {
-        this.orderService = orderService;
-    }
+    @Autowired
+    private OrderService orderService;
 
     @PostMapping
     public ResponseEntity<OrderEntityDTO> createOrder(@RequestBody NewOrderEntityDTO newOrderEntityDTO) {
@@ -52,6 +50,5 @@ public class OrderController {
         OrderEntityDTO confirmedOrder = orderService.confirmOrder(id, userId);
         return ResponseEntity.status(HttpStatus.OK).body(confirmedOrder);
     }
-
 }
 

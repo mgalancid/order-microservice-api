@@ -3,6 +3,7 @@ package com.mindhub.order_service.services.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mindhub.order_service.dtos.NewOrderEntityDTO;
 import com.mindhub.order_service.dtos.OrderEntityDTO;
+import com.mindhub.order_service.dtos.OrderItemDTO;
 import com.mindhub.order_service.dtos.product.ProductEntityDTO;
 import com.mindhub.order_service.dtos.user.UserEntityDTO;
 import com.mindhub.order_service.exceptions.OrderCreationException;
@@ -15,8 +16,10 @@ import com.mindhub.order_service.repositories.OrderRepository;
 import com.mindhub.order_service.services.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -126,10 +129,29 @@ public class OrderServiceImpl implements OrderService {
         }
         OrderEntity order = optionalOrder.get();
 
+        List<OrderItemDTO> orderItems = order.getProducts().stream()
+                .map(OrderItemDTO::new)
+                .collect(Collectors.toList());
+
+        deductStockFromInventory(orderItems, order);
+
         order.setStatus(OrderStatus.COMPLETED);
         orderRepository.save(order);
 
         return new OrderEntityDTO(order);
+    }
+
+    private void deductStockFromInventory(List<OrderItemDTO> orderItems, OrderEntity order) {
+        try {
+            restTemplate.postForObject(productServiceUrl + "/deductStock", orderItems, Void.class);
+        } catch (RestClientResponseException e) {
+            if (e.getStatusCode() == HttpStatus.BAD_REQUEST) {
+                orderRepository.deleteById(order.getId());
+                throw new RuntimeException("Order failed due to insufficient stock.");
+            } else {
+                throw new RuntimeException("Failed to deduct stock from product service: " + e.getMessage());
+            }
+        }
     }
 }
 
