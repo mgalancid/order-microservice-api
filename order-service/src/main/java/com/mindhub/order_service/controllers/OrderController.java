@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.mindhub.order_service.dtos.NewOrderEntityDTO;
 import com.mindhub.order_service.dtos.OrderEntityDTO;
+import com.mindhub.order_service.exceptions.OrderNotFoundException;
 import com.mindhub.order_service.models.OrderStatus;
 import com.mindhub.order_service.services.OrderService;
 import org.springframework.http.HttpStatus;
@@ -44,5 +45,13 @@ public class OrderController {
 
         return ResponseEntity.ok(updatedOrder);
     }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<OrderEntityDTO> confirmOrder(@PathVariable Long id,
+                                                       @RequestParam Long userId) throws OrderNotFoundException {
+        OrderEntityDTO confirmedOrder = orderService.confirmOrder(id, userId);
+        return ResponseEntity.status(HttpStatus.OK).body(confirmedOrder);
+    }
+
 }
 
