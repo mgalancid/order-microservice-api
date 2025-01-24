@@ -44,7 +44,7 @@ public class OrderController {
         return ResponseEntity.ok(updatedOrder);
     }
 
-    @PatchMapping("/{id}")
+    @PostMapping("/{id}/confirm")
     public ResponseEntity<OrderEntityDTO> confirmOrder(@PathVariable Long id,
                                                        @RequestParam Long userId) throws OrderNotFoundException {
         OrderEntityDTO confirmedOrder = orderService.confirmOrder(id, userId);

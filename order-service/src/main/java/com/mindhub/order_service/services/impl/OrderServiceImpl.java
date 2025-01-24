@@ -16,7 +16,6 @@ import com.mindhub.order_service.repositories.OrderRepository;
 import com.mindhub.order_service.services.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientResponseException;
