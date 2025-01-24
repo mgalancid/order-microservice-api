@@ -13,6 +13,5 @@ public interface OrderService {
     OrderEntityDTO createOrder(NewOrderEntityDTO newOrderEntityDTO);
     List<OrderEntityDTO> getAllOrders();
     OrderEntityDTO updateOrderStatus(Long orderId, OrderStatus status);
-    JsonNode getJsonFromUrl(String url) throws JsonProcessingException;
     OrderEntityDTO confirmOrder(Long orderId, Long userId);
 }
