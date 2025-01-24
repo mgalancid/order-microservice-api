@@ -10,13 +10,15 @@ public class OrderEntityDTO {
     private final Long id;
     private final Long userId;
     private final OrderStatus status;
-    private final List<OrderItemEntity> products;
+    private final List<OrderItemDTO> products;
 
     public OrderEntityDTO(OrderEntity order) {
         this.id = order.getId();
         this.userId = order.getUserId();
         this.status = order.getStatus();
-        this.products = order.getProducts();
+        this.products = order.getProducts().stream().map(
+                OrderItemDTO:: new
+        ).toList();
     }
 
     public Long getId() {
@@ -31,9 +33,10 @@ public class OrderEntityDTO {
         return status;
     }
 
-    public List<OrderItemEntity> getProducts() {
+    public List<OrderItemDTO> getProducts() {
         return products;
     }
+
 }
 
 
