@@ -1,4 +1,4 @@
-package com.mindhub.order_service.dtos.order;
+package com.mindhub.order_service.dtos.product;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;

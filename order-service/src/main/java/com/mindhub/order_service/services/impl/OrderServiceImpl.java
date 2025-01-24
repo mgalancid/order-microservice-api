@@ -1,12 +1,10 @@
 package com.mindhub.order_service.services.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mindhub.order_service.dtos.NewOrderEntityDTO;
 import com.mindhub.order_service.dtos.OrderEntityDTO;
-import com.mindhub.order_service.dtos.order.ProductEntityDTO;
-import com.mindhub.order_service.dtos.order.UserEntityDTO;
+import com.mindhub.order_service.dtos.product.ProductEntityDTO;
+import com.mindhub.order_service.dtos.user.UserEntityDTO;
 import com.mindhub.order_service.exceptions.OrderCreationException;
 import com.mindhub.order_service.exceptions.OrderNotFoundException;
 import com.mindhub.order_service.models.OrderEntity;
