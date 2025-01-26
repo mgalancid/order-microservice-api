@@ -2,12 +2,14 @@ package com.mindhub.order_service.services.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mindhub.order_service.dtos.NewOrderEntityDTO;
+import com.mindhub.order_service.dtos.NewOrderItemEntityDTO;
 import com.mindhub.order_service.dtos.OrderEntityDTO;
 import com.mindhub.order_service.dtos.OrderItemDTO;
 import com.mindhub.order_service.dtos.product.ProductEntityDTO;
 import com.mindhub.order_service.dtos.user.UserEntityDTO;
-import com.mindhub.order_service.exceptions.OrderCreationException;
 import com.mindhub.order_service.exceptions.OrderNotFoundException;
+import com.mindhub.order_service.exceptions.products.InsufficientStockException;
+import com.mindhub.order_service.exceptions.products.ProductNotFoundException;
 import com.mindhub.order_service.models.OrderEntity;
 import com.mindhub.order_service.models.OrderStatus;
 import com.mindhub.order_service.models.item.OrderItemEntity;
@@ -22,6 +24,7 @@ import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -44,63 +47,72 @@ public class OrderServiceImpl implements OrderService {
     private final String userServiceUrl;
     private final String productServiceUrl;
 
-    public OrderServiceImpl(@Value("${user.service.url") String userServiceUrl,
-                            @Value("${product.service.url")String productServiceUrl) {
+    public OrderServiceImpl(@Value("${user.service.url}") String userServiceUrl,
+                            @Value("${product.service.url}") String productServiceUrl) {
         this.userServiceUrl = userServiceUrl;
         this.productServiceUrl = productServiceUrl;
     }
 
-
     @Override
     public OrderEntityDTO createOrder(NewOrderEntityDTO newOrderEntityDTO) {
         OrderEntity order = new OrderEntity();
-        order.setStatus(newOrderEntityDTO.getStatus());
+        order.setStatus(OrderStatus.PENDING);
 
-        try {
-            String userServiceEmailUrl = UriComponentsBuilder.fromPath(userServiceUrl)
-                    .path("/users")
-                    .queryParam("email", newOrderEntityDTO.getUserEmail())
-                    .toUriString();
+        UserEntityDTO user = fetchUserByEmail(newOrderEntityDTO.getUserEmail());
+        order.setUserId(user.id());
 
-            ResponseEntity<UserEntityDTO> userResponse = restTemplate.getForEntity(userServiceEmailUrl,
-                    UserEntityDTO.class);
+        List<OrderItemEntity> orderItems = validateAndMapProducts(newOrderEntityDTO.getProducts(), order);
+        order.setProducts(orderItems);
 
-            UserEntityDTO user = userResponse.getBody();
-            if (user == null || user.id() == null) {
-                throw new RuntimeException("User not found for email: " + newOrderEntityDTO.getUserEmail());
-            }
-            order.setUserId(user.id());
+        order = orderRepository.save(order);
+        return new OrderEntityDTO(order);
+    }
 
-            List<ProductEntityDTO> products = newOrderEntityDTO.getProducts()
-                    .stream()
-                    .map(product -> {
-                String productUrl = UriComponentsBuilder.fromPath(productServiceUrl)
-                        .path("/" + product.getProductId())
+    /// createOrder Methods
+
+    private UserEntityDTO fetchUserByEmail(String email) {
+        String userServiceEmailUrl = UriComponentsBuilder.fromUriString(userServiceUrl)
+                .path("/email")
+                .queryParam("email", email)
+                .toUriString();
+
+        ResponseEntity<UserEntityDTO> response = restTemplate.getForEntity(userServiceEmailUrl, UserEntityDTO.class);
+        UserEntityDTO user = response.getBody();
+
+        return user;
+    }
+
+    private List<OrderItemEntity> validateAndMapProducts(List<NewOrderItemEntityDTO> productRequests, OrderEntity order) {
+        return productRequests.stream().map(request -> {
+            try {
+                String productUrl = UriComponentsBuilder.fromUriString(productServiceUrl)
+                        .pathSegment(request.getProductId().toString())
                         .toUriString();
 
-                ResponseEntity<ProductEntityDTO> productResponse = restTemplate.getForEntity(productUrl,
-                                                                                            ProductEntityDTO.class);
+                ResponseEntity<ProductEntityDTO> response = restTemplate.getForEntity(productUrl, ProductEntityDTO.class);
+                ProductEntityDTO product = response.getBody();
 
-                ProductEntityDTO productDetails = productResponse.getBody();
-                if (productDetails == null || productDetails.id() == null) {
-                    throw new RuntimeException("Product not found for ID: " + product.getProductId());
+                if (product == null || product.id() == null) {
+                    throw new ProductNotFoundException("Product with ID " + request.getProductId() + " not found.");
                 }
-                return productDetails;
-            }).toList();
 
-            order.setProducts(products.stream().map(
-                    productEntityDTO -> new OrderItemEntity(order,
-                            productEntityDTO.id(),
-                            1)
-            ).toList());
+                if (product.stock() < request.getQuantity()) {
+                    throw new InsufficientStockException("Insufficient stock for product ID: " + product.id());
+                }
 
-        } catch (Exception e) {
-            throw new OrderCreationException("Order was not able to be processed");
-        }
-
-        OrderEntity savedOrder = orderRepository.save(order);
-        return new OrderEntityDTO(savedOrder);
+                return new OrderItemEntity(order, product.id(), request.getQuantity());
+            } catch (RestClientResponseException e) {
+                if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+                    throw new ProductNotFoundException("Product with ID " + request.getProductId() + " not found.");
+                } else if (e.getStatusCode() == HttpStatus.BAD_REQUEST) {
+                    throw new InsufficientStockException("Insufficient stock for product ID: " + request.getProductId());
+                }
+                throw new RuntimeException("Failed to fetch product: " + e.getMessage());
+            }
+        }).toList();
     }
+
+    ///
 
     @Override
     public List<OrderEntityDTO> getAllOrders() {
@@ -118,6 +130,12 @@ public class OrderServiceImpl implements OrderService {
         OrderEntity updatedOrder = orderRepository.save(order);
 
         return new OrderEntityDTO(updatedOrder);
+    }
+
+    @Override
+    public void removeOrderItem(Long orderItemId) {
+        OrderItemEntity orderItem = orderItemRepository.findById(orderItemId).orElseThrow(OrderNotFoundException::new);
+        orderItemRepository.delete(orderItem);
     }
 
     @Override
@@ -140,9 +158,11 @@ public class OrderServiceImpl implements OrderService {
         return new OrderEntityDTO(order);
     }
 
+    /// confirmOrder Method
+
     private void deductStockFromInventory(List<OrderItemDTO> orderItems, OrderEntity order) {
         try {
-            restTemplate.postForObject(productServiceUrl + "/deductStock", orderItems, Void.class);
+            restTemplate.patchForObject(productServiceUrl + "/stock", orderItems, Void.class);
         } catch (RestClientResponseException e) {
             if (e.getStatusCode() == HttpStatus.BAD_REQUEST) {
                 orderRepository.deleteById(order.getId());

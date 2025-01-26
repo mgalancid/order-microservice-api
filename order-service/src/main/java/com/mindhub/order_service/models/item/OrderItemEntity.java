@@ -1,5 +1,6 @@
 package com.mindhub.order_service.models.item;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import com.mindhub.order_service.models.OrderEntity;
 import jakarta.validation.constraints.Min;
@@ -13,7 +14,8 @@ public class OrderItemEntity {
     private Long id;
 
     @NotNull(message = "Order is required")
-    @ManyToOne
+    @JsonManagedReference
+    @ManyToOne(fetch = FetchType.LAZY)
     private OrderEntity order;
 
     @NotNull(message = "Product ID is required")

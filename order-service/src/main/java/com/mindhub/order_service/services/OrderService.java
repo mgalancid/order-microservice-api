@@ -14,4 +14,5 @@ public interface OrderService {
     List<OrderEntityDTO> getAllOrders();
     OrderEntityDTO updateOrderStatus(Long orderId, OrderStatus status);
     OrderEntityDTO confirmOrder(Long orderId, Long userId);
+    void removeOrderItem(Long orderItemId);
 }
