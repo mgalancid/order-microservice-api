@@ -7,10 +7,14 @@ import com.mindhub.order_service.models.item.OrderItemEntity;
 import java.util.List;
 
 public class OrderEntityDTO {
-    private final Long id;
-    private final Long userId;
-    private final OrderStatus status;
-    private final List<OrderItemDTO> products;
+    private Long id;
+    private Long userId;
+    private OrderStatus status;
+    private List<OrderItemDTO> products;
+
+    public OrderEntityDTO() {
+
+    }
 
     public OrderEntityDTO(OrderEntity order) {
         this.id = order.getId();

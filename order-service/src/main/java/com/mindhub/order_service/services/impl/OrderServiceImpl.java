@@ -24,9 +24,11 @@ import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,10 +38,10 @@ public class OrderServiceImpl implements OrderService {
     private OrderRepository orderRepository;
 
     @Autowired
-    private RestTemplate restTemplate;
+    private OrderItemRepository orderItemRepository;
 
     @Autowired
-    private OrderItemRepository orderItemRepository;
+    private RestTemplate restTemplate;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -77,48 +79,56 @@ public class OrderServiceImpl implements OrderService {
                 .toUriString();
 
         ResponseEntity<UserEntityDTO> response = restTemplate.getForEntity(userServiceEmailUrl, UserEntityDTO.class);
-        UserEntityDTO user = response.getBody();
-
-        return user;
+        return response.getBody();
     }
 
     private List<OrderItemEntity> validateAndMapProducts(List<NewOrderItemEntityDTO> productRequests, OrderEntity order) {
+        List<Long> productIds = productRequests.stream()
+                .map(NewOrderItemEntityDTO::getProductId)
+                .toList();
+
+        String productUrl = UriComponentsBuilder.fromUriString(productServiceUrl)
+                .queryParam("ids", String.join(",",
+                        productIds.stream()
+                        .map(String::valueOf)
+                        .toList()))
+                .toUriString();
+
+        ResponseEntity<ProductEntityDTO[]> response = restTemplate.getForEntity(productUrl, ProductEntityDTO[].class);
+        ProductEntityDTO[] products = response.getBody();
+
+        if (products == null || products.length == 0) {
+            throw new ProductNotFoundException("No products found for IDs: " + productIds);
+        }
+
+        Map<Long, ProductEntityDTO> productMap = Arrays.stream(products)
+                .collect(Collectors.toMap(ProductEntityDTO::id, Function.identity()));
+
         return productRequests.stream().map(request -> {
-            try {
-                String productUrl = UriComponentsBuilder.fromUriString(productServiceUrl)
-                        .pathSegment(request.getProductId().toString())
-                        .toUriString();
-
-                ResponseEntity<ProductEntityDTO> response = restTemplate.getForEntity(productUrl, ProductEntityDTO.class);
-                ProductEntityDTO product = response.getBody();
-
-                if (product == null || product.id() == null) {
-                    throw new ProductNotFoundException("Product with ID " + request.getProductId() + " not found.");
-                }
-
-                if (product.stock() < request.getQuantity()) {
-                    throw new InsufficientStockException("Insufficient stock for product ID: " + product.id());
-                }
-
-                return new OrderItemEntity(order, product.id(), request.getQuantity());
-            } catch (RestClientResponseException e) {
-                if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
-                    throw new ProductNotFoundException("Product with ID " + request.getProductId() + " not found.");
-                } else if (e.getStatusCode() == HttpStatus.BAD_REQUEST) {
-                    throw new InsufficientStockException("Insufficient stock for product ID: " + request.getProductId());
-                }
-                throw new RuntimeException("Failed to fetch product: " + e.getMessage());
+            ProductEntityDTO product = productMap.get(request.getProductId());
+            if (product == null) {
+                throw new ProductNotFoundException("Product with ID " + request.getProductId() + " not found.");
             }
+
+            if (product.stock() < request.getQuantity()) {
+                throw new InsufficientStockException("Insufficient stock for product ID: " + product.id());
+            }
+
+            return new OrderItemEntity(order, product.id(), request.getQuantity());
         }).toList();
     }
 
     ///
 
-    @Override
     public List<OrderEntityDTO> getAllOrders() {
         return orderRepository.findAll().stream()
-                .map(OrderEntityDTO::new)
+                .peek(order -> order.getProducts().size())
+                .map(this::mapToDTO)
                 .collect(Collectors.toList());
+    }
+
+    private OrderEntityDTO mapToDTO(OrderEntity order) {
+            return objectMapper.convertValue(order, OrderEntityDTO.class);
     }
 
     @Override

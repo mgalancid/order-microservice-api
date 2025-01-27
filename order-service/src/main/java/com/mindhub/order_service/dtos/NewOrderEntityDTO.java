@@ -7,9 +7,13 @@ import com.mindhub.order_service.models.item.OrderItemEntity;
 import java.util.List;
 
 public class NewOrderEntityDTO {
-    private final String userEmail;
-    private final OrderStatus status;
-    private final List<NewOrderItemEntityDTO> products;
+    private String userEmail;
+    private OrderStatus status;
+    private List<NewOrderItemEntityDTO> products;
+
+    public NewOrderEntityDTO() {
+
+    }
 
     public NewOrderEntityDTO(String userEmail, OrderStatus status, List<NewOrderItemEntityDTO> products) {
         this.userEmail = userEmail;

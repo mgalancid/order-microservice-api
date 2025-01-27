@@ -3,9 +3,13 @@ package com.mindhub.order_service.dtos;
 import com.mindhub.order_service.models.item.OrderItemEntity;
 
 public class OrderItemDTO {
-    private final Long id;
-    private final Long productId;
-    private final Integer quantity;
+    private Long id;
+    private Long productId;
+    private Integer quantity;
+
+    public OrderItemDTO() {
+
+    }
 
     public OrderItemDTO(OrderItemEntity order) {
         this.id = order.getId();

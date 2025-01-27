@@ -1,6 +1,7 @@
 package com.mindhub.order_service.models;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import com.mindhub.order_service.models.item.OrderItemEntity;
 import jakarta.validation.constraints.NotEmpty;
@@ -23,9 +24,9 @@ public class OrderEntity {
     @Enumerated(EnumType.STRING)
     private OrderStatus status = OrderStatus.PENDING;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.REMOVE)
-    @JsonBackReference
+    @OneToMany(mappedBy = "order", cascade = CascadeType.PERSIST)
     @NotEmpty(message = "Order must contain at least one product")
+    @JsonManagedReference
     private List<OrderItemEntity> products = new ArrayList<>();
 
     public OrderEntity(){
