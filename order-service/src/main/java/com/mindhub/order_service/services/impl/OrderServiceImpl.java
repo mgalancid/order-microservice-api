@@ -172,7 +172,16 @@ public class OrderServiceImpl implements OrderService {
 
     private void deductStockFromInventory(List<OrderItemDTO> orderItems, OrderEntity order) {
         try {
-            restTemplate.patchForObject(productServiceUrl + "/stock", orderItems, Void.class);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<List<OrderItemDTO>> requestEntity = new HttpEntity<>(orderItems, headers);
+
+            restTemplate.exchange(
+                    productServiceUrl + "/stock",
+                    HttpMethod.PATCH,
+                    requestEntity,
+                    Void.class
+            );
         } catch (RestClientResponseException e) {
             if (e.getStatusCode() == HttpStatus.BAD_REQUEST) {
                 orderRepository.deleteById(order.getId());
