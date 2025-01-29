@@ -5,8 +5,8 @@ import com.mindhub.order_service.dtos.OrderEntityDTO;
 import com.mindhub.order_service.dtos.UpdateOrderStatusDTO;
 import com.mindhub.order_service.exceptions.OrderNotFoundException;
 import com.mindhub.order_service.services.impl.OrderServiceImpl;
-import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,9 +21,13 @@ public class OrderController {
     @Autowired
     private OrderServiceImpl orderService;
 
+    @Autowired
+    private AmqpTemplate amqpTemplate;
+
     @PostMapping
     public ResponseEntity<OrderEntityDTO> createOrder(@Valid @RequestBody NewOrderEntityDTO newOrderEntityDTO) {
         OrderEntityDTO createdOrder = orderService.createOrder(newOrderEntityDTO);
+        amqpTemplate.convertAndSend("exchange", "order_confirmation", createdOrder);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdOrder);
     }
 
@@ -33,7 +37,6 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
-    @Transactional
     @PutMapping("/{id}")
     public ResponseEntity<OrderEntityDTO> updateOrderStatus(@PathVariable Long id,
                                                             @RequestBody UpdateOrderStatusDTO status) {

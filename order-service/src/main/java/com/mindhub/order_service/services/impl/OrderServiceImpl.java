@@ -7,6 +7,7 @@ import com.mindhub.order_service.dtos.OrderEntityDTO;
 import com.mindhub.order_service.dtos.OrderItemDTO;
 import com.mindhub.order_service.dtos.product.ProductEntityDTO;
 import com.mindhub.order_service.dtos.user.UserEntityDTO;
+import com.mindhub.order_service.exceptions.OrderCreationException;
 import com.mindhub.order_service.exceptions.OrderNotFoundException;
 import com.mindhub.order_service.exceptions.products.InsufficientStockException;
 import com.mindhub.order_service.exceptions.products.ProductNotFoundException;
@@ -16,13 +17,17 @@ import com.mindhub.order_service.models.item.OrderItemEntity;
 import com.mindhub.order_service.repositories.OrderItemRepository;
 import com.mindhub.order_service.repositories.OrderRepository;
 import com.mindhub.order_service.services.OrderService;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
@@ -43,6 +48,8 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private RestTemplate restTemplate;
 
+    private static final Logger log = LoggerFactory.getLogger(OrderServiceImpl.class);
+
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -55,6 +62,7 @@ public class OrderServiceImpl implements OrderService {
         this.productServiceUrl = productServiceUrl;
     }
 
+    @Transactional(rollbackFor = OrderCreationException.class)
     @Override
     public OrderEntityDTO createOrder(NewOrderEntityDTO newOrderEntityDTO) {
         OrderEntity order = new OrderEntity();
@@ -71,6 +79,11 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /// createOrder Methods
+
+    @RabbitListener(queues = "order_confirmation")
+    public void processOrderMessage(OrderEntityDTO orderEntityDTO) {
+        log.info("Processing received order from RabbitMQ: {}", orderEntityDTO);
+    }
 
     private UserEntityDTO fetchUserByEmail(String email) {
         String userServiceEmailUrl = UriComponentsBuilder.fromUriString(userServiceUrl)
