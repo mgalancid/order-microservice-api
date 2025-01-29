@@ -13,6 +13,12 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
+    public static final String
+            ORDER_CREATE_ORDER_QUEUE = "createOrder",
+            ORDER_CONFIRM_ORDER_QUEUE = "confirmOrder",
+            ORDER_CREATE_ORDER_KEY = "orderEmail.key",
+            ORDER_CONFIRM_ORDER_KEY = "confirmOrder.key";
+
     @Bean
     public MessageConverter jsonMessageConverter() {
         return new Jackson2JsonMessageConverter();
@@ -20,12 +26,12 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue createOrderQueue() {
-        return new Queue("createOrder", false);
+        return new Queue(ORDER_CREATE_ORDER_QUEUE, true);
     }
 
     @Bean
     public Queue orderConfirmationQueue() {
-        return new Queue("order_confirmation", true);
+        return new Queue(ORDER_CONFIRM_ORDER_QUEUE, true);
     }
 
     @Bean
@@ -34,15 +40,15 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding createOrderBinding(@Qualifier("createOrderQueue") Queue createOrderQueue,
+    public Binding createOrderBinding(Queue createOrderQueue,
                                       TopicExchange exchange) {
-        return BindingBuilder.bind(createOrderQueue).to(exchange).with("order_confirmation");
+        return BindingBuilder.bind(createOrderQueue).to(exchange).with(ORDER_CREATE_ORDER_KEY);
     }
 
     @Bean
-    public Binding orderConfirmationBinding(@Qualifier("orderConfirmationQueue") Queue orderConfirmationQueue,
+    public Binding orderConfirmationBinding(Queue orderConfirmationQueue,
                                             TopicExchange exchange) {
-        return BindingBuilder.bind(orderConfirmationQueue).to(exchange).with("order_confirmation");
+        return BindingBuilder.bind(orderConfirmationQueue).to(exchange).with(ORDER_CONFIRM_ORDER_KEY);
     }
 
     @Bean
