@@ -24,10 +24,13 @@ public class OrderController {
     @Autowired
     private AmqpTemplate amqpTemplate;
 
+    public static final String ORDER_CREATE_ORDER_KEY = "orderEmail.key",
+                                ORDER_CONFIRM_ORDER_KEY = "confirmOrder.key";
+
     @PostMapping
     public ResponseEntity<OrderEntityDTO> createOrder(@Valid @RequestBody NewOrderEntityDTO newOrderEntityDTO) {
         OrderEntityDTO createdOrder = orderService.createOrder(newOrderEntityDTO);
-        amqpTemplate.convertAndSend("exchange", "order_confirmation", createdOrder);
+        amqpTemplate.convertAndSend("exchange", ORDER_CREATE_ORDER_KEY, createdOrder);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdOrder);
     }
 
@@ -53,6 +56,11 @@ public class OrderController {
     public ResponseEntity<OrderEntityDTO> confirmOrder(@PathVariable Long id,
                                                        @RequestParam Long userId) throws OrderNotFoundException {
         OrderEntityDTO confirmedOrder = orderService.confirmOrder(id, userId);
+
+        if (confirmedOrder != null) {
+            amqpTemplate.convertAndSend("exchange", ORDER_CONFIRM_ORDER_KEY, confirmedOrder);
+        }
+
         return ResponseEntity.status(HttpStatus.OK).body(confirmedOrder);
     }
 }
