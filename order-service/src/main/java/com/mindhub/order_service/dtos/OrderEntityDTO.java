@@ -2,7 +2,6 @@ package com.mindhub.order_service.dtos;
 
 import com.mindhub.order_service.models.OrderEntity;
 import com.mindhub.order_service.models.OrderStatus;
-import com.mindhub.order_service.models.item.OrderItemEntity;
 
 import java.util.List;
 

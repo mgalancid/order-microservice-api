@@ -1,5 +1,7 @@
 package com.mindhub.order_service.controllers;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mindhub.order_service.dtos.NewOrderEntityDTO;
 import com.mindhub.order_service.dtos.OrderEntityDTO;
 import com.mindhub.order_service.dtos.UpdateOrderStatusDTO;
@@ -24,13 +26,18 @@ public class OrderController {
     @Autowired
     private AmqpTemplate amqpTemplate;
 
+    @Autowired
+    ObjectMapper objectMapper;
+
     public static final String ORDER_CREATE_ORDER_KEY = "orderEmail.key",
                                 ORDER_CONFIRM_ORDER_KEY = "confirmOrder.key";
 
     @PostMapping
-    public ResponseEntity<OrderEntityDTO> createOrder(@Valid @RequestBody NewOrderEntityDTO newOrderEntityDTO) {
+    public ResponseEntity<OrderEntityDTO> createOrder(@Valid @RequestBody NewOrderEntityDTO newOrderEntityDTO) throws JsonProcessingException {
+        System.out.println(objectMapper.writeValueAsString(newOrderEntityDTO));
         OrderEntityDTO createdOrder = orderService.createOrder(newOrderEntityDTO);
-        amqpTemplate.convertAndSend("exchange", ORDER_CREATE_ORDER_KEY, createdOrder);
+        System.out.println(objectMapper.writeValueAsString(createdOrder));
+        amqpTemplate.convertAndSend("exchange", ORDER_CREATE_ORDER_KEY, newOrderEntityDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdOrder);
     }
 

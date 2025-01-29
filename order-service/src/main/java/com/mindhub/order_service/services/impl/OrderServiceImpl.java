@@ -1,10 +1,7 @@
 package com.mindhub.order_service.services.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mindhub.order_service.dtos.NewOrderEntityDTO;
-import com.mindhub.order_service.dtos.NewOrderItemEntityDTO;
-import com.mindhub.order_service.dtos.OrderEntityDTO;
-import com.mindhub.order_service.dtos.OrderItemDTO;
+import com.mindhub.order_service.dtos.*;
 import com.mindhub.order_service.dtos.product.ProductEntityDTO;
 import com.mindhub.order_service.dtos.user.UserEntityDTO;
 import com.mindhub.order_service.exceptions.OrderCreationException;
@@ -17,7 +14,6 @@ import com.mindhub.order_service.models.item.OrderItemEntity;
 import com.mindhub.order_service.repositories.OrderItemRepository;
 import com.mindhub.order_service.repositories.OrderRepository;
 import com.mindhub.order_service.services.OrderService;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -80,7 +76,6 @@ public class OrderServiceImpl implements OrderService {
 
     /// createOrder Methods
 
-    @RabbitListener(queues = "createOrder")
     public void processOrderMessage(OrderEntityDTO orderEntityDTO) {
         log.info("Processing received order from RabbitMQ: {}", orderEntityDTO);
     }
@@ -162,7 +157,6 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    @RabbitListener(queues = "confirmOrder")
     public OrderEntityDTO confirmOrder(Long orderId, Long userId) {
         Optional<OrderEntity> optionalOrder = orderRepository.findById(orderId);
         if (optionalOrder.isEmpty()) {
