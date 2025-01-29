@@ -80,7 +80,7 @@ public class OrderServiceImpl implements OrderService {
 
     /// createOrder Methods
 
-    @RabbitListener(queues = "order_confirmation")
+    @RabbitListener(queues = "createOrder")
     public void processOrderMessage(OrderEntityDTO orderEntityDTO) {
         log.info("Processing received order from RabbitMQ: {}", orderEntityDTO);
     }
@@ -162,6 +162,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @RabbitListener(queues = "confirmOrder")
     public OrderEntityDTO confirmOrder(Long orderId, Long userId) {
         Optional<OrderEntity> optionalOrder = orderRepository.findById(orderId);
         if (optionalOrder.isEmpty()) {
