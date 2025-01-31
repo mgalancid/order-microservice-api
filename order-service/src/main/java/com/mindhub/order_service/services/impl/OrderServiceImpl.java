@@ -9,6 +9,8 @@ import com.mindhub.order_service.exceptions.OrderNotFoundException;
 import com.mindhub.order_service.exceptions.products.InsufficientStockException;
 import com.mindhub.order_service.exceptions.products.ProductNotFoundException;
 import com.mindhub.order_service.exceptions.users.UnauthorizedUserException;
+import com.mindhub.order_service.exceptions.users.UserNotFoundException;
+import com.mindhub.order_service.exceptions.users.UserServiceException;
 import com.mindhub.order_service.models.OrderEntity;
 import com.mindhub.order_service.models.OrderStatus;
 import com.mindhub.order_service.models.item.OrderItemEntity;
@@ -20,6 +22,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -158,7 +161,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public OrderEntityDTO confirmOrder(Long orderId, Long userId) {
+    public OrderConfirmationEmailDTO confirmOrder(Long orderId, Long userId) {
         Optional<OrderEntity> optionalOrder = orderRepository.findById(orderId);
         if (optionalOrder.isEmpty()) {
             throw new OrderNotFoundException("Order with ID " + orderId + " not found.");
@@ -169,6 +172,7 @@ public class OrderServiceImpl implements OrderService {
             throw new UnauthorizedUserException("User " + userId + " is not authorized to confirm order " + orderId);
         }
 
+        String userEmail = getUserEmail(userId); // Or fetchUserByEmail(userId) if you have a direct way
 
         List<OrderItemDTO> orderItems = order.getProducts().stream()
                 .map(OrderItemDTO::new)
@@ -179,10 +183,38 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(OrderStatus.COMPLETED);
         orderRepository.save(order);
 
-        return new OrderEntityDTO(order);
+        return new OrderConfirmationEmailDTO(
+                order.getId(),
+                userEmail,
+                order.getStatus().toString(),
+                orderItems
+        );
     }
 
     /// confirmOrder Method
+
+    private String getUserEmail(Long userId) {
+        String userServiceUrlWithId = UriComponentsBuilder.fromUriString(userServiceUrl)
+                .path("/" + userId)
+                .build()
+                .toUriString();
+
+        try {
+            ResponseEntity<UserEntityDTO> response = restTemplate
+                    .getForEntity(userServiceUrlWithId, UserEntityDTO.class);
+
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                return response.getBody().email();
+            } else if (response.getStatusCode() == HttpStatus.NOT_FOUND) {
+                throw new UserNotFoundException("User with ID " + userId + " not found.");
+            }
+
+        } catch (RestClientException e) {
+            log.error("Error communicating with user service: {}", e.getMessage());
+            throw new UserServiceException("Error communicating with user service.");
+        }
+        return userServiceUrlWithId;
+    }
 
     private void deductStockFromInventory(List<OrderItemDTO> orderItems, OrderEntity order) {
         try {
