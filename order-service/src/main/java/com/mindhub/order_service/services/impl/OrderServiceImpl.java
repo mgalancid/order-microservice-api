@@ -8,6 +8,7 @@ import com.mindhub.order_service.exceptions.OrderCreationException;
 import com.mindhub.order_service.exceptions.OrderNotFoundException;
 import com.mindhub.order_service.exceptions.products.InsufficientStockException;
 import com.mindhub.order_service.exceptions.products.ProductNotFoundException;
+import com.mindhub.order_service.exceptions.users.UnauthorizedUserException;
 import com.mindhub.order_service.models.OrderEntity;
 import com.mindhub.order_service.models.OrderStatus;
 import com.mindhub.order_service.models.item.OrderItemEntity;
@@ -163,6 +164,11 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderNotFoundException("Order with ID " + orderId + " not found.");
         }
         OrderEntity order = optionalOrder.get();
+
+        if (!order.getUserId().equals(userId)) {
+            throw new UnauthorizedUserException("User " + userId + " is not authorized to confirm order " + orderId);
+        }
+
 
         List<OrderItemDTO> orderItems = order.getProducts().stream()
                 .map(OrderItemDTO::new)
