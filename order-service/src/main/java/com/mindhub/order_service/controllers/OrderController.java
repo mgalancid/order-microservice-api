@@ -3,6 +3,7 @@ package com.mindhub.order_service.controllers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mindhub.order_service.dtos.NewOrderEntityDTO;
+import com.mindhub.order_service.dtos.OrderConfirmationEmailDTO;
 import com.mindhub.order_service.dtos.OrderEntityDTO;
 import com.mindhub.order_service.dtos.UpdateOrderStatusDTO;
 import com.mindhub.order_service.exceptions.OrderNotFoundException;
@@ -60,14 +61,11 @@ public class OrderController {
     }
 
     @PostMapping("/{id}/confirm")
-    public ResponseEntity<OrderEntityDTO> confirmOrder(@PathVariable Long id,
-                                                       @RequestParam Long userId) throws OrderNotFoundException {
-        OrderEntityDTO confirmedOrder = orderService.confirmOrder(id, userId);
-
+    public ResponseEntity<OrderConfirmationEmailDTO> confirmOrder(@PathVariable Long id, @RequestParam Long userId) throws OrderNotFoundException {
+        OrderConfirmationEmailDTO confirmedOrder = orderService.confirmOrder(id, userId);
         if (confirmedOrder != null) {
             amqpTemplate.convertAndSend("exchange", ORDER_CONFIRM_ORDER_KEY, confirmedOrder);
         }
-
         return ResponseEntity.status(HttpStatus.OK).body(confirmedOrder);
     }
 }
